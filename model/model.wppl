@@ -1,0 +1,207 @@
+// example call: time webppl model.wppl --require webppl-json --require webppl-sample-writer 1
+
+var chain = last(process.argv)
+
+// helper functions
+
+var foreach = function(fn, lst) {
+  var foreach_ = function(i) {
+    if (i < lst.length) {
+      fn(lst[i]);
+      foreach_(i + 1);
+    }
+  };
+  foreach_(0);
+};
+
+var logistic = function(x) {
+  1 / (1 + Math.exp(-x))
+}
+
+var levels = function(df, label) {
+  return _.uniq(_.map(df, label));
+}
+
+
+// data
+
+var data = json.read('../data/data.json');
+var tasks = levels(data, "task")
+var subjects = levels(data, "id")
+
+json.
+
+var meData = _.filter(data, {
+  task: "mutual_exclusivity"})
+var meItems = levels(meData, "item")
+
+
+//////////////////////////////////////////////////////////////
+////////////////// mutual exclusivity model //////////////////
+//////////////////////////////////////////////////////////////
+
+
+// model utilities
+var all_objects = [
+  { shape: "novel_object"},
+  { shape: "familiar_object"}
+]
+
+var labels = ["novel_word", "familiar_word"]
+
+
+var lexicon1 = function(utterance, obj, sem_knowledge) {
+  utterance.label == "novel_word" ? obj.shape == "novel_object" :
+  utterance.label == "familiar_word" ? flip(sem_knowledge) ?
+  obj.shape == "familiar_object" :
+  flip() ? obj.shape == "familiar_object" : obj.shape == "novel_object" :
+  true
+}
+
+var lexicon2 = function(utterance, obj, sem_knowledge) {
+  utterance.label == "novel_word" ? obj.shape == "familiar_object" :
+  utterance.label == "familiar_word" ? flip(sem_knowledge) ?
+  obj.shape == "familiar_object" :
+  flip() ? obj.shape == "familiar_object" : obj.shape == "novel_object" :
+  true
+}
+
+var lexiconObjects = {
+  "novel_word = novel_object": {
+    novel_object: "novel_word",
+    familiar_object: "familiar_word"
+  },
+  "novel_word = familiar_object": {
+    novel_object: "familiar_word",
+    familiar_object: "familiar_word"
+  },
+}
+
+var lexiconObject = {
+  "novel_word = novel_object": lexicon1,
+  "novel_word = familiar_object": lexicon2
+}
+
+var utterancePrior = function() {
+  return uniformDraw([{
+    label: "novel_word"
+  }, {
+    label: "familiar_word"
+  }])
+}
+
+var LexiconPrior = Categorical({
+  vs: ["novel_word = novel_object", "novel_word = familiar_object"],
+  ps: [1, 1]
+})
+
+// setting othr soParameters
+
+var priorProbs = [.5, .5]
+
+// this is just for now, eventually, we want to substitute this with the by item estimated semantic sem_knowledge
+var sem_knowledge = 1
+
+var model = function() {
+
+//////////////// Semantic knowledge and speaker optimality ////////////////////////
+
+var globalSpeakerOptimality = {
+  mu: sample(Cauchy({location: 1, scale: 2})),
+  sigma: uniformDrift({a: 0, b: 1, width: 0.5})
+}
+
+var sampleSoParameter = function(id) {
+  return [id, {
+      speakerOptimality: gaussianDrift({
+        mu: globalSpeakerOptimality.mu,
+        sigma: globalSpeakerOptimality.sigma,
+        width: 0.5
+      })
+    }]
+}
+
+var all_so_parameters = _.fromPairs(map(sampleSoParameter, subjects))
+
+// want something that favors smaller values
+var subject_sigma = uniformDrift({a: 0, b:1, width: 0.1})
+
+foreach(function(subid){
+    var meSubjectData = _.filter(meData, {subid: subid})
+
+// each row is a different item
+    foreach(function(row){
+
+      var soParameters = all_so_parameters[row.id]
+
+      var speakerOptimality = soParameters.speakerOptimality
+
+      var subj_age = meSubjectData[0].age_month
+
+        var literalListener = cache(function(utterance){
+          Infer({method: "enumerate", model: function(){
+            var lexiconName = sample(LexiconPrior);
+            var lexicon = lexiconObject[lexiconName];
+            var obj = sample( Categorical({vs: all_objects, ps: [.5,.5]}));
+            if ("label" in utterance) {
+              var truthValue = lexicon(utterance, obj, sem_knowledge);
+              condition(truthValue)
+            }
+            return obj.shape
+          }})}, 10000)
+
+          var speaker = cache(function(obj, lexiconName){
+            Infer({method: "enumerate", model: function(){
+              var utterance = utterancePrior();
+              var L0 = literalListener(utterance);
+              factor(speakerOptimality * L0.score(obj.shape))
+              return utterance
+            }})}, 10000)
+
+            var pragmaticListener = function(utterance){
+              Infer({method: "enumerate", model: function(){
+                // display('inside RSA = ' + sem_knowledge)
+                var lexiconName = sample(LexiconPrior);
+                var obj = sample( Categorical({vs: all_objects, ps: [.5,.5]}));
+                var S1 = speaker(obj, lexiconName);
+                observe(S1, utterance)
+                return obj.shape == "novel_object" ? 1 : 0
+              }})}
+
+              var modelPredictions = pragmaticListener({label: "novel_word"})
+
+              observe(modelPredictions, row.correct)
+
+            }, meSubjectData)
+
+          }, subjects)
+
+          foreach(function(subject){
+            var soParameters = all_so_parameters[subject]
+            query.add(["speaker_optimality", subject], soParameters.speakerOptimality)
+          }, subjects)
+
+          return query
+  }
+
+  var header = "iteration,a,b,c,d,e,f"
+
+  var totalIterations = 10, lag =  1;
+  var samples = totalIterations/lag, burn = totalIterations / 2;
+
+
+  var output_file = 'output/model-' + totalIterations + '_burn' + burn + '_lag' + lag + '_chain' + chain + '.csv'
+  var callback = webpplSampleWriter.streamQueryCSV(output_file, header);
+
+  var output = Infer({
+    model,
+    samples: samples,
+    burn: burn,
+    lag: lag,
+    verbose: true,
+    method: 'MCMC',
+    onlyMAP: true,
+    callbacks: [callback]
+  });
+
+  'output written to ' + output_file

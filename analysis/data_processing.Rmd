@@ -1,0 +1,44 @@
+---
+title: "Spin-off"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidyboot)
+library(rjson)
+```
+
+```{r}
+data <- read_csv("../data/data.csv")
+  
+# exporting data to JSON
+write(toJSON(data), "../data/data.json")
+```
+# descriptives
+```{r}
+data %>%
+  group_by(subage)%>%
+  filter(test_day == 2)%>%
+  summarise(complete_retest_data = length(unique(id)))
+```
+
+# visualizing item effects
+
+```{r}
+item_data <- data %>%
+  group_by(task, item, id)%>%
+  summarise(mean = mean(correct))%>%
+  tidyboot_mean(column = mean)
+  
+
+ggplot(item_data, aes(x = item, y = mean))+
+  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper))+
+  facet_grid( ~ task, scales = "free_x")+
+  theme_minimal()
+
+```
+
+
+
+
