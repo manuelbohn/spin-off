@@ -2,6 +2,23 @@
 
 var chain = last(process.argv)
 
+// data
+
+var data = json.read('../data/data.json');
+var tasks = levels(data, "task")
+var subjects = levels(data, "id")
+
+var meData = _.filter(data, {
+  task: "mutual_exclusivity"})
+
+var meItems = levels(meData, "item")
+
+var infData = _.filter(data, {
+  task: "simple_inf"})
+
+var infItems = levels(infData, "item")
+
+
 // helper functions
 
 var foreach = function(fn, lst) {
@@ -22,27 +39,10 @@ var levels = function(df, label) {
   return _.uniq(_.map(df, label));
 }
 
+////////////////////////////////////////
+// mutual exclusivity model utilities//
 
-// data
-
-var data = json.read('../data/data.json');
-var tasks = levels(data, "task")
-var subjects = levels(data, "id")
-
-json.
-
-var meData = _.filter(data, {
-  task: "mutual_exclusivity"})
-var meItems = levels(meData, "item")
-
-
-//////////////////////////////////////////////////////////////
-////////////////// mutual exclusivity model //////////////////
-//////////////////////////////////////////////////////////////
-
-
-// model utilities
-var all_objects = [
+var all_me_objects = [
   { shape: "novel_object"},
   { shape: "familiar_object"}
 ]
@@ -66,7 +66,7 @@ var lexicon2 = function(utterance, obj, sem_knowledge) {
   true
 }
 
-var lexiconObjects = {
+var meLexiconObjects = {
   "novel_word = novel_object": {
     novel_object: "novel_word",
     familiar_object: "familiar_word"
@@ -77,12 +77,12 @@ var lexiconObjects = {
   },
 }
 
-var lexiconObject = {
+var meLexiconObject = {
   "novel_word = novel_object": lexicon1,
   "novel_word = familiar_object": lexicon2
 }
 
-var utterancePrior = function() {
+var meUtterancePrior = function() {
   return uniformDraw([{
     label: "novel_word"
   }, {
@@ -90,21 +90,120 @@ var utterancePrior = function() {
   }])
 }
 
-var LexiconPrior = Categorical({
+var meLexiconPrior = Categorical({
   vs: ["novel_word = novel_object", "novel_word = familiar_object"],
   ps: [1, 1]
 })
 
-// setting othr soParameters
+//////////////////////////////////////
+// informativeness  model utilities//
+
+var all_objects = [
+{ shape: "triangle", id:1, location: 1},
+{ shape: "triangle", id:2, location: 2},
+{ shape: "circle", id:1, location: 2}
+]
+
+// listener prior is over types, not tokens (we use uniformDraw on prior_objects)
+var prior_objects = [
+{ shape: "triangle", id:1, location: 1},
+{ shape: "circle", id:1, location: 2}
+]
+
+var labels = ["dax","wug"]
+
+// two possible lexica, corresponding to meaning of words "dax" and "wug"
+var lexicon1 = function(utterance, obj){
+utterance.label == "dax" ? obj.shape == "triangle" :
+utterance.label == "wug" ? obj.shape == "circle" :
+true
+}
+
+var lexicon2 = function(utterance, obj){
+utterance.label == "dax" ? obj.shape == "circle" :
+utterance.label == "wug" ? obj.shape == "triangle" :
+true
+}
+
+var lexiconObjects = {
+"dax = triangle": {
+triangle: "dax", circle: "wug"
+},
+"dax = circle": {
+triangle: "wug", circle: "dax"
+},
+}
+
+var lexiconObject = {
+"dax = triangle": lexicon1,
+"dax = circle" : lexicon2
+}
+
+var point = function(utterance, obj){
+return obj.location == utterance.point
+}
+
+
+var utterancePrior = function(obj, lexiconName){
+  var locationsWithShape = _.map(_.filter(all_objects, {shape: obj.shape}), "location")
+  var point = uniformDraw(locationsWithShape)
+  var label = lexiconObjects[lexiconName][obj.shape]
+  return {label: label, point: point}
+}
+
+var LexiconPrior = Categorical({vs: ["dax = triangle","dax = circle" ], ps: [1, 1]})
+
+
+// setting other parameters
 
 var priorProbs = [.5, .5]
 
-// this is just for now, eventually, we want to substitute this with the by item estimated semantic sem_knowledge
-var sem_knowledge = 1
+// this is just for now, eventually, we want to substitute this with the by item estimated semantic sem_knowledg
 
 var model = function() {
 
-//////////////// Semantic knowledge and speaker optimality ////////////////////////
+//////// semantic knowledge /////////////
+
+var globalLineParameters = {
+  intercept: uniformDrift({a: -3, b: 3, width: 0.5}),
+  slope: uniformDrift({a: 0, b: 2, width: 0.5})
+}
+
+var itemVariability = {
+  intercept: uniformDrift({a: 0, b: 2, width: 0.2}),
+  slope: uniformDrift({a: 0, b: 1, width: 0.2})
+}
+
+// conceptually it might not make sense to have two sigmas, but maybe it does
+// intercept sigma probably will be smaller than slope sigma
+// var item_int_sigma = uniformDrift({a: 0, b: 3, width: 0.2})
+
+var sampleItemParameters = function(itemName) {
+  return [itemName, {
+      intercept: gaussianDrift({
+        mu: globalLineParameters.intercept,
+        sigma: itemVariability.intercept,
+        width: 0.5
+      }),
+      slope: gaussianDrift({
+        mu: globalLineParameters.slope,
+        sigma: itemVariability.slope,
+        width: 0.5
+      })
+    }]
+}
+
+// {papaya: {int, slope}, bread: {int, slope}, ... }
+var all_item_parameters = _.fromPairs(map(sampleItemParameters, meItems))
+
+// want something that favors smaller values
+var subject_sigma = uniformDrift({a: 0, b:1, width: 0.1})
+
+var sampleLinguisticCompetence = function(age){
+  return gaussianDrift({ mu: age, sigma: subject_sigma, width: 0.1 })
+}
+
+////////////////  speaker optimality ////////////////////////
 
 var globalSpeakerOptimality = {
   mu: sample(Cauchy({location: 1, scale: 2})),
@@ -123,26 +222,29 @@ var sampleSoParameter = function(id) {
 
 var all_so_parameters = _.fromPairs(map(sampleSoParameter, subjects))
 
-// want something that favors smaller values
-var subject_sigma = uniformDrift({a: 0, b:1, width: 0.1})
-
 foreach(function(subid){
     var meSubjectData = _.filter(meData, {subid: subid})
+    var subj_age = meData[0].age_month
+    var subj_linguistic_competence = sampleLinguisticCompetence(subj_age)
 
 // each row is a different item
     foreach(function(row){
+
+      var itemLineParameters = all_item_parameters[row.item]
+
+      var sem_knowledge = logistic(itemLineParameters.intercept +
+        itemLineParameters.slope * subj_linguistic_competence)
 
       var soParameters = all_so_parameters[row.id]
 
       var speakerOptimality = soParameters.speakerOptimality
 
-      var subj_age = meSubjectData[0].age_month
 
-        var literalListener = cache(function(utterance){
+        var meLiteralListener = cache(function(utterance){
           Infer({method: "enumerate", model: function(){
-            var lexiconName = sample(LexiconPrior);
-            var lexicon = lexiconObject[lexiconName];
-            var obj = sample( Categorical({vs: all_objects, ps: [.5,.5]}));
+            var lexiconName = sample(meLexiconPrior);
+            var lexicon = meLexiconObject[melexiconName];
+            var obj = sample( Categorical({vs: all_me_objects, ps: [.5,.5]}));
             if ("label" in utterance) {
               var truthValue = lexicon(utterance, obj, sem_knowledge);
               condition(truthValue)
@@ -150,7 +252,7 @@ foreach(function(subid){
             return obj.shape
           }})}, 10000)
 
-          var speaker = cache(function(obj, lexiconName){
+          var meSpeaker = cache(function(obj, meLexiconName){
             Infer({method: "enumerate", model: function(){
               var utterance = utterancePrior();
               var L0 = literalListener(utterance);
@@ -158,28 +260,35 @@ foreach(function(subid){
               return utterance
             }})}, 10000)
 
-            var pragmaticListener = function(utterance){
+            var mePragmaticListener = function(utterance){
               Infer({method: "enumerate", model: function(){
                 // display('inside RSA = ' + sem_knowledge)
-                var lexiconName = sample(LexiconPrior);
-                var obj = sample( Categorical({vs: all_objects, ps: [.5,.5]}));
-                var S1 = speaker(obj, lexiconName);
+                var meLexiconName = sample(meLexiconPrior);
+                var obj = sample( Categorical({vs: all_me_objects, ps: [.5,.5]}));
+                var S1 = speaker(obj, meLexiconName);
                 observe(S1, utterance)
                 return obj.shape == "novel_object" ? 1 : 0
               }})}
 
-              var modelPredictions = pragmaticListener({label: "novel_word"})
+              var meModelPredictions = mePragmaticListener({label: "novel_word"})
 
-              observe(modelPredictions, row.correct)
+              observe(meModelPredictions, row.correct)
 
             }, meSubjectData)
 
           }, subjects)
 
-          foreach(function(subject){
+        foreach(function(subject){
             var soParameters = all_so_parameters[subject]
-            query.add(["speaker_optimality", subject], soParameters.speakerOptimality)
-          }, subjects)
+            query.add(["NA","speaker_optimality", subject], soParameters.speakerOptimality)
+         }, subjects)
+
+         foreach(function(item){
+           var itemLineParameters = all_item_parameters[item]
+           query.add(["mutual_exclusivity","items", item, "intercept", "NA", "NA"], itemLineParameters.intercept)
+           query.add(["mutual_exclusivity","items", item, "slope", "NA", "NA"], itemLineParameters.slope)
+
+      }, meItems)
 
           return query
   }
