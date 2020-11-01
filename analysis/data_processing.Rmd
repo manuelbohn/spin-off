@@ -8,12 +8,36 @@ library(tidyverse)
 library(tidyboot)
 library(jsonlite)
 library(rwebppl)
+library(coda)
+library(ggthemes)
+library(RColorBrewer)
+library(ggpubr)
+
+estimate_mode <- function(s) {
+  d <- density(s)
+  return(d$x[which.max(d$y)])
+}
+
+
+hdi_upper<- function(s){
+  m <- HPDinterval(mcmc(s))
+  return(m["var1","upper"])
+}
+
+hdi_lower<- function(s){
+  m <- HPDinterval(mcmc(s))
+  return(m["var1","lower"])
+}
+
+
 ```
+
+# Data
+
+## data prep for model
 
 ```{r}
 data <- read_csv("../data/data.csv")
-# exporting data to JSON
-write_json(data, "../data/data.json")
 ```
 # descriptives
 ```{r}
@@ -23,36 +47,121 @@ data %>%
   summarise(complete_retest_data = length(unique(id)))
 ```
 
-# run model 
 ```{r}
-output <- webppl(
-  program_code = model,
-  data = list(data = data),
-  data_var = "dataFromR",
-  model_var = "model",
-  chains = 1,
-  cores = 1,
-  inference_opts = list(method = "MCMC", samples = 1, burn = 0, verbose = T)
+data %>%
+  filter(task == "mutual_exclusivity")%>%
+  group_by(item)%>%
+  summarise(mean = mean(correct))
+```
+
+
+```{r}
+# exporting data to JSON
+write_json(data, "../data/data.json")
+```
+
+# Model 
+
+## model output
+```{r}
+model <- bind_rows(
+  read_csv("../model/output/model-50000_burn25000_lag5_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/model-50000_burn25000_lag5_chain2.csv")%>%mutate(chain = 2)
+  )
+```
+
+```{r}
+model <- model%>%
+  select(-f, -e)%>%
+  rename(paramter = a, 
+         type = b,
+         id = c,
+         value = d
+         )%>%
+  mutate(chain = factor(chain))
+```
+
+## Visualize paramters
+
+### Semantic Knowledge
+
+```{r}
+
+item_params <- model %>%
+  filter(paramter == "items")
+
+item_summary <- item_params %>%
+  group_by(chain, id, type)%>%
+  summarise(mode = estimate_mode(value),
+            uci = hdi_upper(value),
+            lci = hdi_lower(value))
+
+sem_know_map <- item_summary%>%
+  select(-uci,-lci)%>%
+  spread(type, -chain) %>%
+  expand_grid(., age = unique(data$c_age)) %>%
+  mutate(sem_know = plogis(intercept + slope * age))
+
+ggarrange(
+  
+ggplot(item_params, aes(x = value, col = id, fill=id, group = chain))+
+  geom_density(alpha = 0.3, aes(lty = chain))+
+  xlab("Speaker Optimality Parameter")+
+  theme_minimal()+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  guides(col = F, fill = F, lty = F)+
+  facet_grid(id ~type)
+,
+
+ggplot(data = sem_know_map, aes(x = age+2, y= sem_know, col = id))+
+  geom_line( aes(lty = chain),size = 1)+
+  ylab("Semantic knowledge")+
+  xlab("Age")+
+  ylim(0,1)+
+  theme_minimal()+
+  scale_colour_viridis_d(name = "Object")
+
 )
 ```
 
 
-# visualizing item effects
+### Speaker Optimality
 
 ```{r}
-item_data <- data %>%
-  group_by(task, item, id)%>%
-  summarise(mean = mean(correct))%>%
-  tidyboot_mean(column = mean)
-  
+so_id <- model %>%
+  filter(paramter == "speaker_optimality")
 
-ggplot(item_data, aes(x = item, y = mean))+
-  geom_pointrange(aes(ymin = ci_lower, ymax = ci_upper))+
-  facet_grid( ~ task, scales = "free_x")+
-  theme_minimal()
+so_id_summary <- so_id %>%
+  group_by(chain, id)%>%
+  summarise(mode = estimate_mode(value),
+            uci = hdi_upper(value),
+            lci = hdi_lower(value))
 
+getPalette = colorRampPalette(brewer.pal(9, "Set1"))
+colourCount = length(unique(data$id))
+
+ggarrange(
+
+ggplot(so_id, aes(x = value, col = id, fill=id))+
+  geom_density(alpha = 0.3, aes(lty = chain))+
+  xlab("Speaker Optimality Parameter")+
+  theme_minimal()+
+  scale_color_manual(values = getPalette(colourCount))+
+  scale_fill_manual(values = getPalette(colourCount))+
+  guides(col = F, fill = F)+
+  facet_wrap(~id)
+
+,
+
+ggplot(so_id_summary, aes(x = id, y = mode, col = id, fill=id))+
+  geom_pointrange(aes(ymin = lci, ymax = uci, pch = chain))+
+  ylab("Speaker Optimality Parameter")+
+  theme_minimal()+
+  scale_color_manual(values = getPalette(colourCount))+
+  scale_fill_manual(values = getPalette(colourCount))+
+  guides(col = F, fill = F, lty = F)
+  #ylim(0,5)
+)
 ```
-
-
-
 
