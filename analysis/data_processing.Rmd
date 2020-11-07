@@ -52,6 +52,11 @@ data %>%
   filter(task == "mutual_exclusivity")%>%
   group_by(item)%>%
   summarise(mean = mean(correct))
+
+data %>%
+  filter(task == "simple_inf")%>%
+  group_by(item)%>%
+  summarise(mean = mean(correct))
 ```
 
 
@@ -72,11 +77,12 @@ model <- bind_rows(
 
 ```{r}
 model <- model%>%
-  select(-f, -e)%>%
+  select(-f)%>%
   rename(paramter = a, 
          type = b,
-         id = c,
-         value = d
+         task = c,
+         id = d,
+         value = e
          )%>%
   mutate(chain = factor(chain))
 ```
@@ -106,7 +112,7 @@ ggarrange(
   
 ggplot(item_params, aes(x = value, col = id, fill=id, group = chain))+
   geom_density(alpha = 0.3, aes(lty = chain))+
-  xlab("Speaker Optimality Parameter")+
+  xlab("")+
   theme_minimal()+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
@@ -114,7 +120,7 @@ ggplot(item_params, aes(x = value, col = id, fill=id, group = chain))+
   facet_grid(id ~type)
 ,
 
-ggplot(data = sem_know_map, aes(x = age+2, y= sem_know, col = id))+
+ggplot(data = sem_know_map, aes(x = age+3, y= sem_know, col = id))+
   geom_line( aes(lty = chain),size = 1)+
   ylab("Semantic knowledge")+
   xlab("Age")+
@@ -130,10 +136,11 @@ ggplot(data = sem_know_map, aes(x = age+2, y= sem_know, col = id))+
 
 ```{r}
 so_id <- model %>%
-  filter(paramter == "speaker_optimality")
+  filter(paramter == "speaker_optimality",
+         type == "subj_parameter")
 
 so_id_summary <- so_id %>%
-  group_by(chain, id)%>%
+  group_by(chain,task, id)%>%
   summarise(mode = estimate_mode(value),
             uci = hdi_upper(value),
             lci = hdi_lower(value))
@@ -141,9 +148,8 @@ so_id_summary <- so_id %>%
 getPalette = colorRampPalette(brewer.pal(9, "Set1"))
 colourCount = length(unique(data$id))
 
-ggarrange(
 
-ggplot(so_id, aes(x = value, col = id, fill=id))+
+ggplot(so_id, aes(x = value, col = task, fill=task))+
   geom_density(alpha = 0.3, aes(lty = chain))+
   xlab("Speaker Optimality Parameter")+
   theme_minimal()+
@@ -152,16 +158,31 @@ ggplot(so_id, aes(x = value, col = id, fill=id))+
   guides(col = F, fill = F)+
   facet_wrap(~id)
 
-,
 
-ggplot(so_id_summary, aes(x = id, y = mode, col = id, fill=id))+
+ggplot(so_id_summary, aes(x = id, y = mode, col = task, fill=task))+
   geom_pointrange(aes(ymin = lci, ymax = uci, pch = chain))+
   ylab("Speaker Optimality Parameter")+
   theme_minimal()+
-  scale_color_manual(values = getPalette(colourCount))+
-  scale_fill_manual(values = getPalette(colourCount))+
-  guides(col = F, fill = F, lty = F)
+  facet_grid(~task)+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides(lty = F)
   #ylim(0,5)
-)
+```
+### Scale parameter
+
+```{r}
+scale <- model %>%
+  filter(paramter == "speaker_optimality",
+         type == "scale_parameter")
+
+ggplot(scale, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3, aes(lty = chain))+
+  xlab("Scale Parameter")+
+  theme_minimal()+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+
 ```
 

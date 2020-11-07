@@ -354,6 +354,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 data: infSubjectData_correct
               }, function(d) {
                 observe(infModelPredictions, d)
+              
               })
 
 
