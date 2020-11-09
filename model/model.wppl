@@ -214,7 +214,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
         return gaussianDrift({ mu: so, sigma: subject_sigma, width: 0.1 })
       }
 
-      var soScale = logNormal({ mu: 0, sigma: 1 })
+      var soScale = logNormal({ mu: 0, sigma: 0.5 })
 
       //////////////////////////////////////////////////////////////////
       //////////////// ME Model //////////////////////
@@ -287,22 +287,9 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
                 }, meItems)
 
-
-
-              foreach(function(item){
-                var itemLineParameters = all_item_parameters[item]
-                query.add(["items", "intercept","", item], itemLineParameters.intercept)
-                query.add(["items", "slope","", item], itemLineParameters.slope)
-
-              }, meItems)
-
-
-
-
-              //////////////////////////////////////////////////////////////////
+            //////////////////////////////////////////////////////////////////
               ////////////////////// Inf model /////////////////////////////////
               //////////////////////////////////////////////////////////////////
-
 
 
                 var infSubjectData = _.filter(infData, {subid: subid})
@@ -358,19 +345,26 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               })
 
 
-                query.add(["speaker_optimality","subj_parameter","me", subid], [subjectSpeakerOptimality])
-                query.add(["speaker_optimality","subj_parameter","inf", subid], [infSubjectSpeakerOptimality])
+              foreach(function(item){
+                var itemLineParameters = all_item_parameters[item]
+                query.add(["semantic_knowledge", "item_parameter","intercept", item], itemLineParameters.intercept)
+                query.add(["semantic_knowledge", "item_parameter","slope", item], itemLineParameters.slope)
+              }, meItems)
+
+                query.add(["speaker_optimality","subj_parameter","speaker_optimality", subid], [subjectSpeakerOptimality])
+                query.add(["speaker_optimality","subj_parameter","inf_speaker_optimality", subid], [infSubjectSpeakerOptimality])
 
 
               }, subjects)
 
 
+              query.add(["semantic_knowledge", "global_parameter","intercept","NA"], globalLineParameters.intercept)
+              query.add(["semantic_knowledge", "global_parameter","slope","NA"], globalLineParameters.slope)
 
-              query.add(["speaker_optimality","scale_parameter","", ""], [soScale])
-              query.add(["speaker_optimality","intercept", "NA", "NA"], speakerOptimalityParameters.intercept)
-              query.add(["speaker_optimality","slope", "NA", "NA"], speakerOptimalityParameters.slope)
-              query.add(["speaker_optimality","sigma", "NA", "NA"], [subject_sigma])
-
+              query.add(["speaker_optimality","global_parameter","scale_parameter", "NA"], [soScale])
+              query.add(["speaker_optimality","global_parameter", "intercept", "NA"], speakerOptimalityParameters.intercept)
+              query.add(["speaker_optimality","global_parameter", "slope", "NA"], speakerOptimalityParameters.slope)
+              query.add(["speaker_optimality","global_parameter", "sigma", "NA"], [subject_sigma])
 
               return query
             }
@@ -378,7 +372,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 10000, lag =  1;
+            var totalIterations = 40000, lag =  2;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
 
