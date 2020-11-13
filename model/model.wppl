@@ -40,6 +40,8 @@ var infData = _.filter(data, {
 
 var infItems = levels(infData, "item") // trials
 
+var adhocData = _.filter(data, {
+  task: "ad_hoc_implicature"})
 
 ////////////////////////////////////////
     // mutual exclusivity model utilities//
@@ -60,7 +62,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
       true
     }
 
-    var me_lexicon2 = function(utterance, obj, sem_knowledge) {
+  var me_lexicon2 = function(utterance, obj, sem_knowledge) {
       utterance.label == "novel_word" ? obj.shape == "familiar_object" :
       utterance.label == "familiar_word" ? flip(sem_knowledge) ?
       obj.shape == "familiar_object" :
@@ -346,6 +348,62 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 // display("inf data " + infModelPredictions.score(d))
                 observe(infModelPredictions, d)
               })
+
+
+
+              //////////////////////////////////////////////////////////////////
+                ////////////////////// AdhocImplicature model /////////////////////////////////
+                //////////////////////////////////////////////////////////////////
+
+
+                  var adhocSubjectData = _.filter(adhocData, {id: subid})
+                  // display(infSubjectData)
+                  var adhocSubjectData_correct = _.map(adhocSubjectData, "correct")
+
+                  var adhocSubjSpeakerOptimality = subjectSpeakerOptimality * soScale // TO DO: CHANGE TO HAVE INDEPENDENT SCALE PARAMETERS
+
+                  // utterance is
+                  var adhocLiteralListener = cache(function(utterance){
+                      Infer({method: "enumerate", model: function(){
+                        // here: utterance is expected to be the shape label ("triangle" or "circle")
+                        var location = uniformDraw([1, 2])
+                        var objectsOnTable = _.map(
+                          _.filter(inf_all_objects, {location: location}),
+                          "shape")
+                        // check if utterance(shape label) is contained in set of shape labels at location
+                        condition(objectsOnTable.indexOf(utterance) > -1 )
+                        return location
+                      }})
+                    })
+
+                    var adhocSpeaker = cache(function(loc, speakerOptimality){
+                      Infer({method: "enumerate", model: function(){
+                        var utterance = uniformDraw(["triangle", "circle"])
+                        var L0 = adhocLiteralListener(utterance);
+                        factor(speakerOptimality * L0.score(loc))
+                        return utterance
+                      }})
+                    })
+
+                    var adhocPragmaticListener = cache(function(utterance, speakerOptimality){
+                      Infer({method: "enumerate", model: function(){
+                        var location = uniformDraw([1, 2])
+                        var S1 = infSpeaker(location, speakerOptimality);
+                        observe(S1, utterance)
+                        return location
+                      }})
+                    })
+
+
+                var adhocModelPredictions = infPragmaticListener("triangle", adhocSubjSpeakerOptimality)
+
+                mapData({
+                  data: adhocSubjectData_correct
+                }, function(d) {
+                  // display("adhoc data " + adhocModelPredictions.score(d))
+                  observe(adhocModelPredictions, d)
+                })
+
 
 
               foreach(function(item){
