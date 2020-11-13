@@ -33,12 +33,12 @@ var subjects = levels(data, "id")
 var meData = _.filter(data, {
   task: "mutual_exclusivity"})
 
-var meItems = levels(meData, "item")
+var meItems = levels(meData, "item") // words
 
 var infData = _.filter(data, {
   task: "simple_inf"})
 
-var infItems = levels(infData, "item")
+var infItems = levels(infData, "item") // trials
 
 
 ////////////////////////////////////////
