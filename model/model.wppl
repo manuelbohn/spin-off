@@ -222,8 +222,9 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
 
       foreach(function(subid){
+        // display(meData)
 
-        var meSubjectData = _.filter(meData, {subid: subid})
+        var meSubjectData = _.filter(meData, {id: subid})
 
         var subj_age = meData[0].c_age_month
 
@@ -237,7 +238,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
           var meSubjectDataItem = _.filter(meSubjectData, {
             item: item
           })
-
+          // display(meSubjectDataItem)
           var meSubjectDataItem_correct = _.map(meSubjectDataItem, "correct")
 
           var itemLineParameters = all_item_parameters[item]
@@ -282,6 +283,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                   mapData({
                     data: meSubjectDataItem_correct
                   }, function(d) {
+                    // display("me data " + meModelPredictions.score(d))
                     observe(meModelPredictions, d)
                   })
 
@@ -292,8 +294,8 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               //////////////////////////////////////////////////////////////////
 
 
-                var infSubjectData = _.filter(infData, {subid: subid})
-
+                var infSubjectData = _.filter(infData, {id: subid})
+                // display(infSubjectData)
                 var infSubjectData_correct = _.map(infSubjectData, "correct")
 
                 var infSubjectSpeakerOptimality = subjectSpeakerOptimality * soScale
@@ -341,6 +343,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               mapData({
                 data: infSubjectData_correct
               }, function(d) {
+                // display("inf data " + infModelPredictions.score(d))
                 observe(infModelPredictions, d)
               })
 
@@ -373,11 +376,12 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
             var header = "iteration,a,b,c,d,e,f"
 
             var totalIterations = 40000, lag =  2;
+            // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
 
             var output_file = 'output/model-' + totalIterations + '_burn' + burn + '_lag' + lag + '_chain' + chain + '.csv'
-            //var output_file = 'output/model-test.csv'
+            // //var output_file = 'output/model-test.csv'
             var callback = webpplSampleWriter.streamQueryCSV(output_file, header);
 
             var output = Infer({
