@@ -390,7 +390,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                         var location = uniformDraw([1, 2])
                         var S1 = infSpeaker(location, speakerOptimality);
                         observe(S1, utterance)
-                        return location
+                        return location == 1 ? 1 : 0
                       }})
                     })
 
