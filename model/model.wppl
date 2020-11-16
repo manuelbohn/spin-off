@@ -229,7 +229,12 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
         var meSubjectData = _.filter(meData, {id: subid})
 
-        var subj_age = meData[0].c_age_month
+        var subj_age = meSubjectData[0].c_age_month
+
+        //  display(subj_age)
+
+        //display(meData[0].c_age_month)
+        //display(meSubjectData[0].c_age_month)
 
         var so = speakerOptimalityParameters.intercept  + speakerOptimalityParameters.slope * subj_age
 
@@ -312,7 +317,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
                 //var infSpeakerOptimality = so * infScale
                 var infSpeakerOptimality = so
-                //display(infSubjectSpeakerOptimality)
+                //display(infSpeakerOptimality)
 
                 var infLiteralListener = cache(function(utterance){
                     Infer({method: "enumerate", model: function(){
@@ -454,7 +459,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 50000, lag =  2;
+            var totalIterations = 50000 , lag =  2;
             // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
