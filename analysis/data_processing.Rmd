@@ -57,6 +57,11 @@ data %>%
   filter(task == "simple_inf")%>%
   group_by(item)%>%
   summarise(mean = mean(correct))
+
+data %>%
+  filter(task == "ad_hoc_implicature")%>%
+  group_by(item)%>%
+  summarise(mean = mean(correct))
 ```
 
 
@@ -69,15 +74,15 @@ write_json(data, "../data/data.json")
 
 ## model output
 ```{r}
-# model <- bind_rows(
-#   read_csv("../model/output/model-40000_burn20000_lag2_chain1.csv")%>%mutate(chain = 1),
-#   read_csv("../model/output/model-40000_burn20000_lag2_chain2.csv")%>%mutate(chain = 2),
-#   read_csv("../model/output/model-40000_burn20000_lag2_chain3.csv")%>%mutate(chain = 3)
-#   )
+model <- bind_rows(
+  read_csv("../model/output/model-100000_burn50000_lag2_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/model-100000_burn50000_lag2_chain2.csv")%>%mutate(chain = 2),
+  #read_csv("../model/output/model-40000_burn20000_lag2_chain3.csv")%>%mutate(chain = 3)
+  )
 # 
 # saveRDS(model, "../model/output/model.rds")
 
-model <- readRDS("../model/output/model.rds")
+#model <- readRDS("../model/output/model.rds")
 ```
 
 ```{r}
@@ -170,9 +175,9 @@ global_so <- model %>%
 
 ggplot(global_so, aes(x = value, col = chain, fill=chain))+
   geom_density(alpha = 0.3)+
-  xlab("Scale Parameter")+
+  xlab("Value")+
   theme_minimal()+
-  facet_grid(~task)+
+  facet_grid(~task, scales = "free_x")+
   scale_color_ptol()+
   scale_fill_ptol()+
   guides()
@@ -213,8 +218,9 @@ scale <- model %>%
          task == "scale_parameter")
 
 ggplot(scale, aes(x = value, col = chain, fill=chain))+
-  geom_density(alpha = 0.3, aes(lty = chain))+
+  geom_density(alpha = 0.3)+
   xlab("Scale Parameter")+
+  facet_grid(~id)+
   theme_minimal()+
   scale_color_ptol()+
   scale_fill_ptol()+

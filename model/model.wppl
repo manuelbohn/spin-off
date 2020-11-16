@@ -216,7 +216,8 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
         return gaussianDrift({ mu: so, sigma: subject_sigma, width: 0.1 })
       }
 
-      var soScale = logNormal({ mu: 0, sigma: 0.5 })
+      var infScale = logNormal({ mu: 0, sigma: 0.5 })
+      var adhocScale = logNormal({ mu: 0, sigma: 0.5 })
 
       //////////////////////////////////////////////////////////////////
       //////////////// ME Model //////////////////////
@@ -240,7 +241,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
           var meSubjectDataItem = _.filter(meSubjectData, {
             item: item
           })
-          // display(meSubjectDataItem)
+          //display(meSubjectDataItem)
           var meSubjectDataItem_correct = _.map(meSubjectDataItem, "correct")
 
           var itemLineParameters = all_item_parameters[item]
@@ -300,8 +301,8 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 // display(infSubjectData)
                 var infSubjectData_correct = _.map(infSubjectData, "correct")
 
-                var infSubjectSpeakerOptimality = subjectSpeakerOptimality * soScale
-
+                var infSubjectSpeakerOptimality = subjectSpeakerOptimality * infScale
+                //  display(infSubjectSpeakerOptimality)
 
                 var infLiteralListener = cache(function(utterance){
                     Infer({method: "enumerate", model: function(){
@@ -345,7 +346,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               mapData({
                 data: infSubjectData_correct
               }, function(d) {
-                // display("inf data " + infModelPredictions.score(d))
+                 //display(d)
                 observe(infModelPredictions, d)
               })
 
@@ -357,10 +358,11 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
 
                   var adhocSubjectData = _.filter(adhocData, {id: subid})
-                  // display(infSubjectData)
+                   // display(adhocSubjectData)
                   var adhocSubjectData_correct = _.map(adhocSubjectData, "correct")
 
-                  var adhocSubjSpeakerOptimality = subjectSpeakerOptimality * soScale // TO DO: CHANGE TO HAVE INDEPENDENT SCALE PARAMETERS
+                  var adhocSubjSpeakerOptimality = subjectSpeakerOptimality * adhocScale
+                   //display(adhocSubjSpeakerOptimality)
 
                   // utterance is
                   var adhocLiteralListener = cache(function(utterance){
@@ -388,19 +390,20 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                     var adhocPragmaticListener = cache(function(utterance, speakerOptimality){
                       Infer({method: "enumerate", model: function(){
                         var location = uniformDraw([1, 2])
-                        var S1 = infSpeaker(location, speakerOptimality);
+                        var S1 = adhocSpeaker(location, speakerOptimality);
                         observe(S1, utterance)
                         return location == 1 ? 1 : 0
                       }})
                     })
 
 
-                var adhocModelPredictions = infPragmaticListener("triangle", adhocSubjSpeakerOptimality)
+                var adhocModelPredictions = adhocPragmaticListener("triangle", adhocSubjSpeakerOptimality)
+                //display(adhocModelPredictions)
 
                 mapData({
                   data: adhocSubjectData_correct
                 }, function(d) {
-                  // display("adhoc data " + adhocModelPredictions.score(d))
+                   //display(d)
                   observe(adhocModelPredictions, d)
                 })
 
@@ -414,6 +417,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
                 query.add(["speaker_optimality","subj_parameter","speaker_optimality", subid], [subjectSpeakerOptimality])
                 query.add(["speaker_optimality","subj_parameter","inf_speaker_optimality", subid], [infSubjectSpeakerOptimality])
+                query.add(["speaker_optimality","subj_parameter","adhoc_speaker_optimality", subid], [adhocSubjSpeakerOptimality])
 
 
               }, subjects)
@@ -422,7 +426,8 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               query.add(["semantic_knowledge", "global_parameter","intercept","NA"], globalLineParameters.intercept)
               query.add(["semantic_knowledge", "global_parameter","slope","NA"], globalLineParameters.slope)
 
-              query.add(["speaker_optimality","global_parameter","scale_parameter", "NA"], [soScale])
+              query.add(["speaker_optimality","global_parameter","scale_parameter", "inf"], [infScale])
+              query.add(["speaker_optimality","global_parameter","scale_parameter", "ad_hoc"], [adhocScale])
               query.add(["speaker_optimality","global_parameter", "intercept", "NA"], speakerOptimalityParameters.intercept)
               query.add(["speaker_optimality","global_parameter", "slope", "NA"], speakerOptimalityParameters.slope)
               query.add(["speaker_optimality","global_parameter", "sigma", "NA"], [subject_sigma])
@@ -433,7 +438,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 40000, lag =  2;
+            var totalIterations = 100000, lag =  2;
             // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
@@ -449,6 +454,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               lag: lag,
               verbose: true,
               method: 'incrementalMH',
+              //method: 'MCMC',
               verboseLag: 1000,
               onlyMAP: true,
               callbacks: [callback]
