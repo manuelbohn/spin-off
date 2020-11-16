@@ -233,7 +233,12 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
         var so = speakerOptimalityParameters.intercept  + speakerOptimalityParameters.slope * subj_age
 
+        //display(speakerOptimalityParameters)
+        //display(so)
+
         var subjectSpeakerOptimality = sampleSpeakerOptimality(so)
+
+        //display(subjectSpeakerOptimality)
 
         // each row is a different item
         foreach(function(item){
@@ -243,13 +248,14 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
           })
           //display(meSubjectDataItem)
           var meSubjectDataItem_correct = _.map(meSubjectDataItem, "correct")
+          //display(meSubjectDataItem_correct)
 
           var itemLineParameters = all_item_parameters[item]
-
+          //display(itemLineParameters)
           var sem_knowledge = logistic(itemLineParameters.intercept +
             itemLineParameters.slope * subj_age)
 
-
+            //display(sem_knowledge)
             var meLiteralListener = cache(function(utterance){
               Infer({method: "enumerate", model: function(){
                 var lexiconName = sample(meLexiconPrior);
@@ -300,9 +306,9 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 var infSubjectData = _.filter(infData, {id: subid})
                 // display(infSubjectData)
                 var infSubjectData_correct = _.map(infSubjectData, "correct")
-
+                //display(infSubjectData_correct)
                 var infSubjectSpeakerOptimality = subjectSpeakerOptimality * infScale
-                //  display(infSubjectSpeakerOptimality)
+                //display(infSubjectSpeakerOptimality)
 
                 var infLiteralListener = cache(function(utterance){
                     Infer({method: "enumerate", model: function(){
@@ -346,7 +352,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               mapData({
                 data: infSubjectData_correct
               }, function(d) {
-                 //display(d)
+                  //display("inf data " + infModelPredictions.score(d))
                 observe(infModelPredictions, d)
               })
 
@@ -360,7 +366,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                   var adhocSubjectData = _.filter(adhocData, {id: subid})
                    // display(adhocSubjectData)
                   var adhocSubjectData_correct = _.map(adhocSubjectData, "correct")
-
+                   //display(adhocSubjectData_correct)
                   var adhocSubjSpeakerOptimality = subjectSpeakerOptimality * adhocScale
                    //display(adhocSubjSpeakerOptimality)
 
@@ -403,7 +409,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 mapData({
                   data: adhocSubjectData_correct
                 }, function(d) {
-                   //display(d)
+                   //display("ad hoc data " + adhocModelPredictions.score(d))
                   observe(adhocModelPredictions, d)
                 })
 
@@ -438,7 +444,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 100000, lag =  2;
+            var totalIterations = 1, lag =  1;
             // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
