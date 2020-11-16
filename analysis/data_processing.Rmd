@@ -75,9 +75,9 @@ write_json(data, "../data/data.json")
 ## model output
 ```{r}
 model <- bind_rows(
-  read_csv("../model/output/model-100000_burn50000_lag2_chain1.csv")%>%mutate(chain = 1),
-  read_csv("../model/output/model-100000_burn50000_lag2_chain2.csv")%>%mutate(chain = 2),
-  #read_csv("../model/output/model-40000_burn20000_lag2_chain3.csv")%>%mutate(chain = 3)
+  read_csv("../model/output/model-50000_burn25000_lag2_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/model-50000_burn25000_lag2_chain2.csv")%>%mutate(chain = 2),
+  read_csv("../model/output/model-50000_burn25000_lag2_chain3.csv")%>%mutate(chain = 3)
   )
 # 
 # saveRDS(model, "../model/output/model.rds")
@@ -209,6 +209,16 @@ ggplot(so_id_summary, aes(x = id, y = mode, col = chain))+
   scale_fill_ptol()+
   guides(lty = F)
   #ylim(0,5)
+
+
+ggplot(so_id, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  theme_minimal()+
+  facet_wrap(~id)+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
 ```
 #### Scale parameter
 
