@@ -65,7 +65,10 @@ bind_rows(
   read_csv("../model/output/day2-50000_burn25000_lag2_chain3.csv")%>%mutate(chain = 3)
   )%>%mutate(day = 2)
 
-)
+)%>%saveRDS("../model/output/reli_model.rds")
+
+model <- readRDS("../model/output/reli_model.rds")
+
 ```
 
 ```{r}
@@ -87,15 +90,6 @@ so_id <- model %>%
          type == "subj_parameter",
          task == "speaker_optimality")
 
-ggplot(so_id, aes(x = value, col = factor(day), fill=factor(day)))+
-  geom_density(alpha = 0.3)+
-  xlab("Value")+
-  ggtitle("ID specific speaker optimality")+
-  theme_minimal()+
-  facet_wrap(~id)+
-  scale_color_ptol()+
-  scale_fill_ptol()+
-  guides()
 
 ggplot(so_id, aes(x = value, col = factor(day), fill=factor(day)))+
   geom_density(alpha = 0.3)+
