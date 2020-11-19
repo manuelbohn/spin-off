@@ -1,0 +1,134 @@
+---
+title: "Spin-off"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidyboot)
+library(jsonlite)
+library(rwebppl)
+library(coda)
+library(ggthemes)
+library(RColorBrewer)
+library(ggpubr)
+
+estimate_mode <- function(s) {
+  d <- density(s)
+  return(d$x[which.max(d$y)])
+}
+
+
+hdi_upper<- function(s){
+  m <- HPDinterval(mcmc(s))
+  return(m["var1","upper"])
+}
+
+hdi_lower<- function(s){
+  m <- HPDinterval(mcmc(s))
+  return(m["var1","lower"])
+}
+
+
+```
+
+# Data
+
+## data prep for model
+
+```{r}
+data <- read_csv("../data/data.csv")
+```
+# descriptives
+```{r}
+data %>%
+  group_by(subage)%>%
+  filter(test_day == 2)%>%
+  summarise(complete_retest_data = length(unique(id)))
+```
+
+# Model 
+
+## model output
+```{r}
+model <- bind_rows(
+  
+bind_rows(
+  read_csv("../model/output/day1-50000_burn25000_lag2_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/day1-50000_burn25000_lag2_chain2.csv")%>%mutate(chain = 2),
+  read_csv("../model/output/day1-50000_burn25000_lag2_chain3.csv")%>%mutate(chain = 3)
+  )%>%mutate(day = 1),
+
+bind_rows(
+  read_csv("../model/output/day2-50000_burn25000_lag2_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/day2-50000_burn25000_lag2_chain2.csv")%>%mutate(chain = 2),
+  read_csv("../model/output/day2-50000_burn25000_lag2_chain3.csv")%>%mutate(chain = 3)
+  )%>%mutate(day = 2)
+
+)
+```
+
+```{r}
+model <- model%>%
+  select(-f)%>%
+  rename(paramter = a, 
+         type = b,
+         task = c,
+         id = d,
+         value = e
+         )%>%
+  mutate(chain = factor(chain))
+```
+
+#### Correlate subject specific speaker optimality
+```{r}
+so_id <- model %>%
+  filter(paramter == "speaker_optimality",
+         type == "subj_parameter",
+         task == "speaker_optimality")
+
+ggplot(so_id, aes(x = value, col = factor(day), fill=factor(day)))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("ID specific speaker optimality")+
+  theme_minimal()+
+  facet_wrap(~id)+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+
+ggplot(so_id, aes(x = value, col = factor(day), fill=factor(day)))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("ID specific speaker optimality")+
+  theme_minimal()+
+  facet_wrap(~id)+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+
+```
+
+```{r}
+so_id_summary <- so_id %>%
+  group_by(day,task,id)%>%
+  summarise(mode = mean(value),
+            uci = hdi_upper(value),
+            lci = hdi_lower(value))%>%
+  pivot_wider(names_from = c(day), values_from = c(mode,uci,lci))
+
+
+ggplot(so_id_summary, aes(x = mode_1, y = mode_2))+
+  geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
+    geom_point(size = 5, pch = 4)+
+  geom_errorbar(aes(ymin = lci_2, ymax = uci_2),width = 0, alpha = .4)+
+  geom_errorbarh(aes(xmin = lci_1, xmax = uci_1), height = 0, alpha = .4)+
+  labs(x = "Day 1", y = "Day 2")+
+  #facet_grid(~chain)+
+  stat_cor(method = "pearson", aes(x = mode_1, y = mode_2), inherit.aes = F, size = 3)+
+  theme_minimal()+
+  coord_fixed()
+
+```
+
+

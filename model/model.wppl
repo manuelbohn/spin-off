@@ -164,7 +164,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
       var globalLineParameters = {
         intercept: uniformDrift({a: -2, b: 2, width: 0.5}),
-        slope: uniformDrift({a: 0, b: 2, width: 0.5})
+        slope: uniformDrift({a: 0, b: 3, width: 0.5})
       }
 
 
@@ -204,17 +204,24 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
         }),
         slope: uniformDrift({
           a: 0,
-          b: 2,
+          b: 3,
           width: 0.5
         })
       }
 
-      var subject_sigma = uniformDrift({a: 0, b:1, width: 0.1})
+      var subject_sigma = uniformDrift({a: 0, b:2, width: 0.1})
 
+
+      // var sampleSpeakerOptimality = function(so){
+      //   return gaussianDrift({ mu: so, sigma: subject_sigma, width: 0.1 })
+      // }
 
       var sampleSpeakerOptimality = function(so){
-        return gaussianDrift({ mu: so, sigma: subject_sigma, width: 0.1 })
-      }
+       var x =  gaussianDrift({ mu: so, sigma: subject_sigma, width: 0.1 })
+       //return x < 0.001 ? 0.001 : x
+       return x < 0 ? sampleSpeakerOptimality(so) : x
+     }
+
 
       var infScale = logNormal({ mu: 0, sigma: 0.5 })
       var adhocScale = logNormal({ mu: 0, sigma: 0.5 })
@@ -401,7 +408,9 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                       Infer({method: "enumerate", model: function(){
                         var utterance = uniformDraw(["triangle", "circle"])
                         var L0 = adhocLiteralListener(utterance);
+                        //display(speakerOptimality + " -- " + utterance + " -- " + JSON.stringify(L0))
                         factor(speakerOptimality * L0.score(loc))
+
                         return utterance
                       }})
                     })
@@ -410,6 +419,9 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                       Infer({method: "enumerate", model: function(){
                         var location = uniformDraw([1, 2])
                         var S1 = adhocSpeaker(location, speakerOptimality);
+                        //if (S1.score("triangle") == -Infinity){
+                          //display(JSON.stringify(S1))
+                        //}
                         observe(S1, utterance)
                         return location == 1 ? 1 : 0
                       }})
@@ -461,7 +473,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 100000 , lag =  2;
+            var totalIterations = 100000, lag =  2;
             // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 

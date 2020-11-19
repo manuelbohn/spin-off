@@ -74,11 +74,12 @@ write_json(data, "../data/data.json")
 
 ## model output
 ```{r}
-# model <- bind_rows(
-#   read_csv("../model/output/model-100000_burn50000_lag2_chain1.csv")%>%mutate(chain = 1),
-#   read_csv("../model/output/model-100000_burn50000_lag2_chain2.csv")%>%mutate(chain = 2),
-#   read_csv("../model/output/model-100000_burn50000_lag2_chain3.csv")%>%mutate(chain = 3)
-#   )%>%saveRDS("../model/output/model.rds")
+model <- bind_rows(
+  read_csv("../model/output/model-100000_burn50000_lag2_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/model-100000_burn50000_lag2_chain2.csv")%>%mutate(chain = 2),
+  read_csv("../model/output/model-100000_burn50000_lag2_chain3.csv")%>%mutate(chain = 3),
+  read_csv("../model/output/model-100000_burn50000_lag2_chain4.csv")%>%mutate(chain = 4)
+  )%>%saveRDS("../model/output/model.rds")
 
 model <- readRDS("../model/output/model.rds")
 ```
