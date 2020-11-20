@@ -122,7 +122,6 @@ ggplot(so_id_summary, aes(x = mode_1, y = mode_2))+
   stat_cor(method = "pearson", aes(x = mode_1, y = mode_2), inherit.aes = F, size = 3)+
   theme_minimal()+
   coord_fixed()
-
 ```
 
 

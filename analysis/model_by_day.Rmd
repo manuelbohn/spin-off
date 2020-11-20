@@ -39,61 +39,26 @@ hdi_lower<- function(s){
 ```{r}
 data <- read_csv("../data/data.csv")
 ```
-# descriptives
-```{r}
-data %>%
-  group_by(subage)%>%
-  filter(test_day == 2)%>%
-  summarise(complete_retest_data = length(unique(id)))
-```
-
-```{r}
-data %>%
-  filter(task == "mutual_exclusivity")%>%
-  group_by(subage, item)%>%
-  summarise(mean = mean(correct))
-
-data %>%
-  filter(task == "simple_inf")%>%
-  group_by(item)%>%
-  summarise(mean = mean(correct))
-
-data %>%
-  filter(task == "ad_hoc_implicature")%>%
-  group_by(item)%>%
-  summarise(mean = mean(correct))
-```
-
-
-```{r}
-# exporting data to JSON
-data %>%
-  filter(task != "card_sorting",
-         task != "discourse_continuity")%>%
-  write_json("../data/data.json")
-```
 
 # Model 
 
 ## model output
 ```{r}
 model <- bind_rows(
-  read_csv("../model/output/model-75000_burn37500_lag2_chain1.csv")%>%mutate(chain = 1),
-  read_csv("../model/output/model-75000_burn37500_lag2_chain2.csv")%>%mutate(chain = 2),
-  read_csv("../model/output/model-75000_burn37500_lag2_chain3.csv")%>%mutate(chain = 3),
-  read_csv("../model/output/model-75000_burn37500_lag2_chain4.csv")%>%mutate(chain = 4)
+  read_csv("../model/output/model_by_day-20000_burn10000_lag1_chain1.csv")%>%mutate(chain = 1),
+  read_csv("../model/output/model_by_day-20000_burn10000_lag1_chain2.csv")%>%mutate(chain = 2)
   )%>%
-  select(-f)%>%
   rename(paramter = a,
          type = b,
-         task = c,
+         token = c,
          id = d,
-         value = e
+         day = e,
+         value = f,
          )%>%
-  mutate(chain = factor(chain))%>%
-  saveRDS("../model/output/model.rds")
+  mutate(chain = factor(chain),
+         day = factor(day))#%>%saveRDS("../model/output/model_by_day.rds")
 
-model <- readRDS("../model/output/model.rds")
+#model <- readRDS("../model/output/model_by_day.rds")
 ```
 
 ## Visualize paramters
@@ -112,7 +77,7 @@ ggplot(global_sem, aes(x = value, col = chain, fill=chain))+
   ggtitle("Global Semantic Knowledge")+
   xlab("Value")+
   theme_minimal()+
-  facet_grid(~task)+
+  facet_grid(~token)+
   scale_color_ptol()+
   scale_fill_ptol()+
   guides()
@@ -127,14 +92,14 @@ item_params <- model %>%
   filter(type == "item_parameter")
 
 item_summary <- item_params %>%
-  group_by(chain, id, task)%>%
+  group_by(chain, id, token)%>%
   summarise(mode = estimate_mode(value),
             uci = hdi_upper(value),
             lci = hdi_lower(value))
 
 sem_know_map <- item_summary%>%
   select(-uci,-lci)%>%
-  spread(task, -chain) %>%
+  spread(token, -chain) %>%
   expand_grid(., age = unique(data$c_age)) %>%
   mutate(sem_know = plogis(intercept + slope * age))
 
@@ -147,7 +112,7 @@ ggplot(item_params, aes(x = value, col = id, fill=id, group = chain))+
   scale_color_viridis_d()+
   scale_fill_viridis_d()+
   guides(col = F, fill = F, lty = F)+
-  facet_grid(id ~task)
+  facet_grid(id ~token)
 ,
 
 ggplot(data = sem_know_map, aes(x = age+3, y= sem_know, col = id))+
@@ -169,58 +134,97 @@ ggplot(data = sem_know_map, aes(x = age+3, y= sem_know, col = id))+
 global_so <- model %>%
   filter(paramter == "speaker_optimality",
          type == "global_parameter",
-         task != "scale_parameter")%>%
-  mutate(task = factor(task, levels = c("intercept", "slope","sigma")))
+         token != "scale_parameter",
+         id != "day" | is.na(id))%>%
+  mutate(token = factor(token, levels = c("intercept", "slope","sigma")))
 
 ggplot(global_so, aes(x = value, col = chain, fill=chain))+
   geom_density(alpha = 0.3)+
   xlab("Value")+
   ggtitle("Global speaker optimality")+
   theme_minimal()+
-  facet_grid(~task)+
+  facet_grid(~token)+
   scale_color_ptol()+
   scale_fill_ptol()+
   guides()
 ```
 
-
 #### Subject specific speaker optimality
+
 ```{r}
 so_id <- model %>%
   filter(paramter == "speaker_optimality",
          type == "subj_parameter",
-         task == "speaker_optimality")
+         token == "speaker_optimality")
 
-ggplot(so_id, aes(x = value, col = chain, fill=chain))+
+ggplot(so_id, aes(x = value, col = chain, fill = chain))+
   geom_density(alpha = 0.3)+
   xlab("Value")+
   ggtitle("ID specific speaker optimality")+
   theme_minimal()+
-  facet_wrap(~id)+
+  facet_wrap(~id, scales = "free")+
+  scale_color_ptol()+
+  scale_fill_ptol()
+```
+
+```{r}
+sigma_day <- model %>%
+  filter(paramter == "speaker_optimality",
+         type == "global_parameter",
+         id == "day")
+
+ggplot(sigma_day, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("Global speaker optimality")+
+  theme_minimal()+
+  facet_grid(~token)+
   scale_color_ptol()+
   scale_fill_ptol()+
   guides()
 ```
 
+##### by day
 ```{r}
-so_id_summary <- so_id %>%
-  group_by(chain,task, id)%>%
+so_id_day <- model %>%
+  filter(paramter == "speaker_optimality",
+         type == "subj_parameter_day",
+         token == "speaker_optimality")
+
+ggplot(so_id_day, aes(x = value, col = day, fill= day))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("ID specific speaker optimality")+
+  theme_minimal()+
+  facet_wrap(~id, scales = "free")+
+  scale_color_colorblind()+
+  scale_fill_colorblind()
+```
+
+
+```{r}
+cor_data <- so_id_day %>%
+  group_by(id,day)%>%
   summarise(mode = mean(value),
             uci = hdi_upper(value),
-            lci = hdi_lower(value))
+            lci = hdi_lower(value))%>%
+  pivot_wider(names_from = c(day), values_from = c(mode,uci,lci))
 
 
-ggplot(so_id_summary, aes(x = id, y = mode, col = chain))+
-  geom_pointrange(aes(ymin = lci, ymax = uci, pch = chain), position = position_dodge(width = .5))+
-  ggtitle("ID specific speaker optimality")+
-  ylab("Speaker Optimality Parameter")+
+ggplot(cor_data, aes(x = mode_1, y = mode_2))+
+  geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
+    geom_point(size = 5, pch = 4)+
+  geom_errorbar(aes(ymin = lci_2, ymax = uci_2),width = 0, alpha = .4)+
+  geom_errorbarh(aes(xmin = lci_1, xmax = uci_1), height = 0, alpha = .4)+
+  labs(x = "Day 1", y = "Day 2")+
+  #facet_grid(~chain)+
+  stat_cor(method = "pearson", aes(x = mode_1, y = mode_2), inherit.aes = F, size = 3)+
   theme_minimal()+
-  scale_color_ptol()+
-  scale_fill_ptol()+
-  guides(lty = F)
-  #ylim(0,5)
+  coord_fixed()
 
 ```
+
+
 #### Scale parameter
 
 ```{r}
@@ -239,31 +243,3 @@ ggplot(scale, aes(x = value, col = chain, fill=chain))+
 
 ```
 
-# Correlation of Speaker Optimality Parameter with other measures
-
-```{r}
-cor_data <- so_id %>%
-  group_by(id)%>%
-  summarise(mode = mean(value),
-            uci = hdi_upper(value),
-            lci = hdi_lower(value))%>%
-  right_join(
-    data %>%
-      group_by(id,task)%>%
-      summarise(mean= mean(correct))%>%
-      filter(task != "ad_hoc_implicature",
-             task != "mutual_exclusivity",
-             task != "simple_inf")
-  )
-
-
-ggplot(cor_data, aes(x = mean, y = mode))+
-  geom_point(size = 2, pch = 4)+
-  labs(x = "Measure", y = "Speaker optimality")+
-  facet_grid(~task)+
-  geom_smooth(method = "lm", col = "black")+
-  stat_cor(method = "pearson", aes(x = mean, y = mode), inherit.aes = F, size = 3)+
-  theme_few()+
-  coord_fixed(ratio = 1/7)+
-  ylim(0,7)
-````
