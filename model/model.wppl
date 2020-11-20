@@ -209,7 +209,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
         })
       }
 
-      var subject_sigma = uniformDrift({a: 0, b:2, width: 0.1})
+      var subject_sigma = uniformDrift({a: 0, b:1, width: 0.1})
 
 
       // var sampleSpeakerOptimality = function(so){
@@ -473,7 +473,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 100000, lag =  2;
+            var totalIterations = 75000, lag =  2;
             // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
