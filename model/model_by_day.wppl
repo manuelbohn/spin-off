@@ -501,7 +501,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 20000, lag =  2;
+            var totalIterations = 100000, lag =  2;
             // var totalIterations = 2, lag =  1;
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
