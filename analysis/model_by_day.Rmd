@@ -44,21 +44,23 @@ data <- read_csv("../data/data.csv")
 
 ## model output
 ```{r}
-model <- bind_rows(
-  read_csv("../model/output/model_by_day-20000_burn10000_lag1_chain1.csv")%>%mutate(chain = 1),
-  read_csv("../model/output/model_by_day-20000_burn10000_lag1_chain2.csv")%>%mutate(chain = 2)
-  )%>%
-  rename(paramter = a,
-         type = b,
-         token = c,
-         id = d,
-         day = e,
-         value = f,
-         )%>%
-  mutate(chain = factor(chain),
-         day = factor(day))#%>%saveRDS("../model/output/model_by_day.rds")
+# model <- bind_rows(
+#   read_csv("../model/output/model_by_day-100000_burn50000_lag2_chain1.csv")%>%mutate(chain = 1),
+#   read_csv("../model/output/model_by_day-100000_burn50000_lag2_chain2.csv")%>%mutate(chain = 2),
+#   read_csv("../model/output/model_by_day-100000_burn50000_lag2_chain3.csv")%>%mutate(chain = 3),
+#   read_csv("../model/output/model_by_day-100000_burn50000_lag2_chain4.csv")%>%mutate(chain = 4)
+#   )%>%
+#   rename(paramter = a,
+#          type = b,
+#          token = c,
+#          id = d,
+#          day = e,
+#          value = f,
+#          )%>%
+#   mutate(chain = factor(chain),
+#          day = factor(day))%>%saveRDS("../model/output/model_by_day.rds")
 
-#model <- readRDS("../model/output/model_by_day.rds")
+model <- readRDS("../model/output/model_by_day.rds")
 ```
 
 ## Visualize paramters
@@ -205,7 +207,7 @@ ggplot(so_id_day, aes(x = value, col = day, fill= day))+
 ```{r}
 cor_data <- so_id_day %>%
   group_by(id,day)%>%
-  summarise(mode = mean(value),
+  summarise(mode = estimate_mode(value),
             uci = hdi_upper(value),
             lci = hdi_lower(value))%>%
   pivot_wider(names_from = c(day), values_from = c(mode,uci,lci))
@@ -230,7 +232,7 @@ ggplot(cor_data, aes(x = mode_1, y = mode_2))+
 ```{r}
 scale <- model %>%
   filter(paramter == "speaker_optimality",
-         task == "scale_parameter")
+         token == "scale_parameter")
 
 ggplot(scale, aes(x = value, col = chain, fill=chain))+
   geom_density(alpha = 0.3)+
