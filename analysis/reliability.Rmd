@@ -106,7 +106,7 @@ ggplot(so_id, aes(x = value, col = factor(day), fill=factor(day)))+
 ```{r}
 so_id_summary <- so_id %>%
   group_by(day,task,id)%>%
-  summarise(mode = mean(value),
+  summarise(mode = estimate_mode(value),
             uci = hdi_upper(value),
             lci = hdi_lower(value))%>%
   pivot_wider(names_from = c(day), values_from = c(mode,uci,lci))
