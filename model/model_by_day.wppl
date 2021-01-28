@@ -505,9 +505,6 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 200000, lag =  5;
-            // var totalIterations = 2, lag =  1;
-            var samples = totalIterations/lag, burn = totalIterations / 2;
 
 
             var output_file = 'output/model_by_day-predictions-chain' + chain + '.csv'
@@ -516,14 +513,14 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var output = Infer({
               model,
-              samples: 1000,
-              burn: 25000,
+              samples: 10000,
+              burn: 100000,
               lag: 9,
               verbose: true,
-              method: 'incrementalMH',
-              //method: 'MCMC',
-              verboseLag: 1000,
-              onlyMAP: true,
+              //method: 'incrementalMH',
+              method: 'MCMC',
+              //verboseLag: 1000,
+              //onlyMAP: true,
               callbacks: [callback]
             });
 
