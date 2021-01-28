@@ -515,7 +515,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
               model,
               samples: 10000,
               burn: 100000,
-              lag: 9,
+              lag: 19,
               verbose: true,
               //method: 'incrementalMH',
               method: 'MCMC',
