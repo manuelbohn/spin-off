@@ -510,15 +510,15 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
             var samples = totalIterations/lag, burn = totalIterations / 2;
 
 
-            var output_file = 'output/model_by_day-' + totalIterations + '_burn' + burn + '_lag' + lag + '_chain' + chain + '.csv'
+            var output_file = 'output/model_by_day-predictions-chain' + chain + '.csv'
             // //var output_file = 'output/model-test.csv'
             var callback = webpplSampleWriter.streamQueryCSV(output_file, header);
 
             var output = Infer({
               model,
-              samples: 1,
-              burn: 0,
-              lag: 0,
+              samples: 1000,
+              burn: 25000,
+              lag: 9,
               verbose: true,
               method: 'incrementalMH',
               //method: 'MCMC',
