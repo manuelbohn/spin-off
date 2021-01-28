@@ -338,6 +338,8 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                     observe(meModelPredictions, d)
                   })
 
+                  query.add(["model_predictions","me",item, subid,day], [Math.exp(meModelPredictions.score(1))])
+
                 }, meItems)
 
 
@@ -400,7 +402,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 observe(infModelPredictions, d)
               })
 
-
+              query.add(["model_predictions","simple_inf","NA", subid,day], [Math.exp(infModelPredictions.score(1))])
 
 
 
@@ -468,6 +470,8 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                 query.add(["speaker_optimality","subj_parameter_day","inf_speaker_optimality", subid,day], [infSubjectSpeakerOptimalityDay])
                 query.add(["speaker_optimality","subj_parameter_day","adhoc_speaker_optimality", subid,day], [adhocSubjectSpeakerOptimalityDay])
 
+                query.add(["model_predictions","ad_hoc","NA", subid,day], [Math.exp(adhocModelPredictions.score(1))])
+
   }, days)
 
                foreach(function(item){
@@ -477,7 +481,7 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
                }, meItems)
 
                 query.add(["speaker_optimality","subj_parameter","speaker_optimality", subid,"NA"], [subjectSpeakerOptimality])
-                //query.add(["speaker_optimality","subj_parameter","inf_speaker_optimality", subid,"NA"], [infSubjectSpeakerOptimality])
+
                 //query.add(["speaker_optimality","subj_parameter","adhoc_speaker_optimality", subid,"NA"], [adhocSubjSpeakerOptimality])
 
 
@@ -512,9 +516,9 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var output = Infer({
               model,
-              samples: samples,
-              burn: burn,
-              lag: lag,
+              samples: 1,
+              burn: 0,
+              lag: 0,
               verbose: true,
               method: 'incrementalMH',
               //method: 'MCMC',
