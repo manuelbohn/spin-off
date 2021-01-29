@@ -69,9 +69,15 @@ model_raw <- model_samples%>%
 
 model <- model_raw%>%
   filter(chain != "4")
-# saveRDS(model, "../model/output/model_by_day.rds")
+
+# model_params <- model%>%
+#   filter(parameter != "model_predictions")
 # 
-# model <- readRDS("../model/output/model_by_day.rds")
+# saveRDS(model_params, "../model/output/model_by_day_params.rds")
+
+model_params <- readRDS("../model/output/model_by_day_params.rds")
+  
+
 ```
 
 ## Model predictions
@@ -83,10 +89,13 @@ id_age <- data %>%
   select(id,subage)%>%
   distinct(id,subage)
   
+# model_pred <- model %>%
+#   filter(parameter == "model_predictions")%>%
+#   left_join(id_age)
+# 
+# saveRDS(model_pred, "../model/output/model_by_day_pred.rds")
 
-model_pred <- model %>%
-  filter(parameter == "model_predictions")%>%
-  left_join(id_age)
+model_pred <- readRDS("../model/output/model_by_day_pred.rds")
 
 model_pred <- model_pred%>%
   mutate(test_day = as.numeric(day),
@@ -154,7 +163,7 @@ data_summary %>%
 #### Global semantic knowledge
 
 ```{r}
-global_sem <- model %>%
+global_sem <- model_params %>%
   filter(parameter == "semantic_knowledge",
          type == "global_parameter")
 
@@ -174,7 +183,7 @@ ggplot(global_sem, aes(x = value, col = chain, fill=chain))+
 
 ```{r}
 
-item_params <- model %>%
+item_params <- model_params %>%
   filter(type == "item_parameter")
 
 item_summary <- item_params %>%
@@ -217,7 +226,7 @@ ggplot(data = sem_know_map, aes(x = age+3, y= sem_know, col = id))+
 #### Global speaker optimality
 
 ```{r}
-global_so <- model %>%
+global_so <- model_params %>%
   filter(parameter == "speaker_optimality",
          type == "global_parameter",
          token != "scale_parameter",
@@ -238,7 +247,7 @@ ggplot(global_so, aes(x = value, col = chain, fill=chain))+
 #### Subject specific speaker optimality
 
 ```{r}
-so_id <- model %>%
+so_id <- model_params %>%
   filter(parameter == "speaker_optimality",
          type == "subj_parameter",
          token == "speaker_optimality")
@@ -254,7 +263,7 @@ ggplot(so_id, aes(x = value, col = chain, fill = chain))+
 ```
 
 ```{r}
-sigma_day <- model %>%
+sigma_day <- model_params %>%
   filter(parameter == "speaker_optimality",
          type == "global_parameter",
          id == "day")
@@ -272,7 +281,7 @@ ggplot(sigma_day, aes(x = value, col = chain, fill=chain))+
 
 ##### by day
 ```{r}
-so_id_day <- model %>%
+so_id_day <- model_params %>%
   filter(parameter == "speaker_optimality",
          type == "subj_parameter_day",
          token == "speaker_optimality")
@@ -315,7 +324,7 @@ ggsave("cor.png", width = 3.5, height = 3.5)
 #### Scale parameter
 
 ```{r}
-scale <- model %>%
+scale <- model_params %>%
   filter(parameter == "speaker_optimality",
          token == "scale_parameter")
 
