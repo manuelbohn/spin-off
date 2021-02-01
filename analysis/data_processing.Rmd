@@ -7,7 +7,6 @@ output: html_document
 library(tidyverse)
 library(tidyboot)
 library(jsonlite)
-library(rwebppl)
 library(coda)
 library(ggthemes)
 library(RColorBrewer)
@@ -77,12 +76,16 @@ data %>%
 
 ## model output
 ```{r}
-model <- bind_rows(
-  read_csv("../model/output/model-75000_burn37500_lag2_chain1.csv")%>%mutate(chain = 1),
-  read_csv("../model/output/model-75000_burn37500_lag2_chain2.csv")%>%mutate(chain = 2),
-  read_csv("../model/output/model-75000_burn37500_lag2_chain3.csv")%>%mutate(chain = 3),
-  read_csv("../model/output/model-75000_burn37500_lag2_chain4.csv")%>%mutate(chain = 4)
-  )%>%
+model_samples <- bind_rows(
+  fread("../model/output/model_total-chain1.csv")%>%mutate(chain = 1),
+  fread("../model/output/model_total-chain2.csv")%>%mutate(chain = 2),
+  fread("../model/output/model_total-chain3.csv")%>%mutate(chain = 3),
+  fread("../model/output/model_total-chain4.csv")%>%mutate(chain = 4),
+  fread("../model/output/model_total-chain5.csv")%>%mutate(chain = 5),
+  fread("../model/output/model_total-chain6.csv")%>%mutate(chain = 6)
+  )
+
+model_raw <- model_samples%>%
   select(-f)%>%
   rename(paramter = a,
          type = b,
@@ -90,8 +93,11 @@ model <- bind_rows(
          id = d,
          value = e
          )%>%
-  mutate(chain = factor(chain))%>%
-  saveRDS("../model/output/model.rds")
+  mutate(chain = factor(chain))
+
+model <- model_raw
+  
+saveRDS(model, "../model/output/model.rds")
 
 model <- readRDS("../model/output/model.rds")
 ```
