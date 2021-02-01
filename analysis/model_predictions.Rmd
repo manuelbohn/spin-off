@@ -320,7 +320,6 @@ ggplot(cor_data, aes(x = mode_1, y = mode_2))+
 ggsave("cor.png", width = 3.5, height = 3.5)
 ```
 
-
 #### Scale parameter
 
 ```{r}

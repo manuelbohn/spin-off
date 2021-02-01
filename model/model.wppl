@@ -473,25 +473,21 @@ var me_lexicon1 = function(utterance, obj, sem_knowledge) {
 
             var header = "iteration,a,b,c,d,e,f"
 
-            var totalIterations = 75000, lag =  2;
-            // var totalIterations = 2, lag =  1;
-            var samples = totalIterations/lag, burn = totalIterations / 2;
 
-
-            var output_file = 'output/model-' + totalIterations + '_burn' + burn + '_lag' + lag + '_chain' + chain + '.csv'
+            var output_file = 'output/model_total-chain' + chain + '.csv'
             // //var output_file = 'output/model-test.csv'
             var callback = webpplSampleWriter.streamQueryCSV(output_file, header);
 
             var output = Infer({
               model,
-              samples: samples,
-              burn: burn,
-              lag: lag,
+              samples: 10000,
+              burn: 100000,
+              lag: 19,
               verbose: true,
-              method: 'incrementalMH',
-              //method: 'MCMC',
-              verboseLag: 1000,
-              onlyMAP: true,
+              //method: 'incrementalMH',
+              method: 'MCMC',
+              //verboseLag: 1000,
+              //onlyMAP: true,
               callbacks: [callback]
             });
 
