@@ -1,0 +1,250 @@
+---
+title: "pragBat model"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+library(tidyboot)
+library(jsonlite)
+library(coda)
+library(ggthemes)
+library(RColorBrewer)
+library(ggpubr)
+library(data.table)
+
+estimate_mode <- function(s) {
+  d <- density(s)
+  return(d$x[which.max(d$y)])
+}
+
+
+hdi_upper<- function(s){
+  m <- HPDinterval(mcmc(s))
+  return(m["var1","upper"])
+}
+
+hdi_lower<- function(s){
+  m <- HPDinterval(mcmc(s))
+  return(m["var1","lower"])
+}
+
+
+```
+
+# Model 
+
+## model output
+```{r}
+
+a <-fread("../model/output/model_pragBat3-chain1.csv")%>%mutate(chain = 1)
+b <-fread("../model/output/model_pragBat3-chain2.csv")%>%mutate(chain = 2)
+c <-fread("../model/output/model_pragBat3-chain3.csv")%>%mutate(chain = 3)
+d <-fread("../model/output/model_pragBat3-chain4.csv")%>%mutate(chain = 4)
+e <-fread("../model/output/model_pragBat3-chain5.csv")%>%mutate(chain = 5)
+f <-fread("../model/output/model_pragBat3-chain6.csv")%>%mutate(chain = 6)
+
+
+model_samples <- bind_rows(a,b,c,d,e,f)
+
+model_raw <- model_samples%>%
+  rename(parameter = a,
+         type = b,
+         token = c,
+         id = d,
+         value = e,
+         score = f
+         )%>%
+  mutate(chain = factor(chain))
+
+# model_params <- model%>%
+#   filter(parameter != "model_predictions")
+# 
+saveRDS(model_raw, "../model/output/model_params_pragBat3.rds")
+
+#model_params <- readRDS("../model/output/model_by_day_params.rds")
+
+```
+
+## Visualize paramters
+
+### Semantic Knowledge
+
+#### Global semantic knowledge
+
+```{r}
+global_sem <- model_raw %>%
+  filter(parameter == "semantic_knowledge",
+         type == "global_parameter")
+
+ggplot(global_sem, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3)+
+  ggtitle("Global Semantic Knowledge")+
+  xlab("Value")+
+  theme_minimal()+
+  facet_wrap(~token, scales = "free_y")+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+
+```
+
+#### Item specific semantic knowledge
+
+```{r}
+
+item_params <- model_raw %>%
+  filter(type == "item_parameter")
+
+item_summary <- item_params %>%
+  group_by(chain, id, token)%>%
+  summarise(mode = estimate_mode(value),
+            uci = hdi_upper(value),
+            lci = hdi_lower(value))
+
+sem_know_map <- item_summary%>%
+  select(-uci,-lci)%>%
+  spread(token, -chain) %>%
+  expand_grid(., age = seq(from = 0, to = 2, by = 0.1)) %>%
+  mutate(sem_know = plogis(intercept + slope * age))
+
+ggarrange(
+  
+ggplot(item_params, aes(x = value, col = id, fill=id, group = chain))+
+  geom_density(alpha = 0.3, aes(lty = chain))+
+  xlab("")+
+  theme_minimal()+
+  scale_color_viridis_d()+
+  scale_fill_viridis_d()+
+  guides(col = F, fill = F, lty = F)+
+  facet_grid(id ~token)
+,
+
+ggplot(data = sem_know_map, aes(x = age+3, y= sem_know, col = id))+
+  geom_line( aes(lty = chain),size = 1)+
+  ylab("Semantic knowledge")+
+  xlab("Age")+
+  ylim(0,1)+
+  theme_minimal()+
+  scale_colour_viridis_d(name = "Object")
+
+)
+```
+
+### Speaker Optimality
+
+#### Global speaker optimality
+
+```{r}
+global_so <- model_params %>%
+  filter(parameter == "speaker_optimality",
+         type == "global_parameter",
+         token != "scale_parameter",
+         id != "day" | is.na(id))%>%
+  mutate(token = factor(token, levels = c("intercept", "slope","sigma")))
+
+ggplot(global_so, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("Global speaker optimality")+
+  theme_minimal()+
+  facet_grid(~token)+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+```
+
+#### Subject specific speaker optimality
+
+```{r}
+so_id <- model_params %>%
+  filter(parameter == "speaker_optimality",
+         type == "subj_parameter",
+         token == "speaker_optimality")
+
+ggplot(so_id, aes(x = value, col = chain, fill = chain))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("ID specific speaker optimality")+
+  theme_minimal()+
+  facet_wrap(~id, scales = "free")+
+  scale_color_ptol()+
+  scale_fill_ptol()
+```
+
+```{r}
+sigma_day <- model_params %>%
+  filter(parameter == "speaker_optimality",
+         type == "global_parameter",
+         id == "day")
+
+ggplot(sigma_day, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("Global speaker optimality")+
+  theme_minimal()+
+  facet_grid(~token)+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+```
+
+##### by day
+```{r}
+so_id_day <- model_params %>%
+  filter(parameter == "speaker_optimality",
+         type == "subj_parameter_day",
+         token == "speaker_optimality")
+
+ggplot(so_id_day, aes(x = value, col = day, fill= day))+
+  geom_density(alpha = 0.3)+
+  xlab("Value")+
+  ggtitle("ID specific speaker optimality")+
+  theme_minimal()+
+  facet_wrap(~id, scales = "free")+
+  scale_color_colorblind()+
+  scale_fill_colorblind()
+```
+
+
+```{r}
+cor_data <- so_id_day %>%
+  group_by(id,day)%>%
+  summarise(mode = estimate_mode(value),
+            uci = hdi_upper(value),
+            lci = hdi_lower(value))%>%
+  pivot_wider(names_from = c(day), values_from = c(mode,uci,lci))
+
+
+ggplot(cor_data, aes(x = mode_1, y = mode_2))+
+  geom_abline(intercept = 0, slope = 1, lty = 2, alpha = 0.7, size = 0.5)+
+  geom_errorbar(aes(ymin = lci_2, ymax = uci_2),width = 0, alpha = .2)+
+  geom_errorbarh(aes(xmin = lci_1, xmax = uci_1), height = 0, alpha = .2)+
+  geom_point(size = 1.5, col = "firebrick", stroke = 1)+
+  labs(x = "Test", y = "Re-Test")+
+  #facet_grid(~chain)+
+  stat_cor(method = "pearson", aes(x = mode_1, y = mode_2), inherit.aes = F, size = 3)+
+  theme_minimal()+
+  coord_fixed()
+
+ggsave("cor.png", width = 3.5, height = 3.5)
+```
+
+#### Scale parameter
+
+```{r}
+scale <- model_params %>%
+  filter(parameter == "speaker_optimality",
+         token == "scale_parameter")
+
+ggplot(scale, aes(x = value, col = chain, fill=chain))+
+  geom_density(alpha = 0.3)+
+  xlab("Scale Parameter")+
+  facet_grid(~id)+
+  theme_minimal()+
+  scale_color_ptol()+
+  scale_fill_ptol()+
+  guides()
+
+```
+
