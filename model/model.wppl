@@ -482,32 +482,32 @@ var model = function() {
 
         foreach(function(item) {
             var itemLineParameters = all_item_parameters[item]
-            query.add(["semantic_knowledge", "item_parameter", "intercept", item], itemLineParameters.intercept)
-            query.add(["semantic_knowledge", "item_parameter", "slope", item], itemLineParameters.slope)
+            query.add([chain, "semantic_knowledge", "item_parameter", "intercept", item], itemLineParameters.intercept)
+            query.add([chain, "semantic_knowledge", "item_parameter", "slope", item], itemLineParameters.slope)
         }, meItems)
 
-        query.add(["speaker_optimality", "subj_parameter", "speaker_optimality", subid], [subjectSpeakerOptimality])
-        query.add(["speaker_optimality", "subj_parameter", "inf_speaker_optimality", subid], [infSubjectSpeakerOptimality])
-        query.add(["speaker_optimality", "subj_parameter", "adhoc_speaker_optimality", subid], [adhocSubjSpeakerOptimality])
+        query.add([chain, "speaker_optimality", "subj_parameter", "speaker_optimality", subid], [subjectSpeakerOptimality])
+            //query.add([chain, "speaker_optimality", "subj_parameter", "inf_speaker_optimality", subid], [infSubjectSpeakerOptimality])
+            //query.add([chain, "speaker_optimality", "subj_parameter", "adhoc_speaker_optimality", subid], [adhocSubjSpeakerOptimality])
 
 
     }, subjects)
 
 
-    query.add(["semantic_knowledge", "global_parameter", "intercept", "NA"], globalLineParameters.intercept)
-    query.add(["semantic_knowledge", "global_parameter", "slope", "NA"], globalLineParameters.slope)
+    query.add([chain, "semantic_knowledge", "global_parameter", "intercept", "NA"], globalLineParameters.intercept)
+    query.add([chain, "semantic_knowledge", "global_parameter", "slope", "NA"], globalLineParameters.slope)
 
-    query.add(["speaker_optimality", "global_parameter", "scale_parameter", "inf"], [infScale])
-    query.add(["speaker_optimality", "global_parameter", "scale_parameter", "ad_hoc"], [adhocScale])
-    query.add(["speaker_optimality", "global_parameter", "intercept", "NA"], speakerOptimalityParameters.intercept)
-    query.add(["speaker_optimality", "global_parameter", "slope", "NA"], speakerOptimalityParameters.slope)
-    query.add(["speaker_optimality", "global_parameter", "sigma", "NA"], [subject_sigma])
+    query.add([chain, "speaker_optimality", "global_parameter", "scale_parameter", "inf"], [infScale])
+    query.add([chain, "speaker_optimality", "global_parameter", "scale_parameter", "ad_hoc"], [adhocScale])
+    query.add([chain, "speaker_optimality", "global_parameter", "intercept", "NA"], speakerOptimalityParameters.intercept)
+    query.add([chain, "speaker_optimality", "global_parameter", "slope", "NA"], speakerOptimalityParameters.slope)
+    query.add([chain, "speaker_optimality", "global_parameter", "sigma", "NA"], [subject_sigma])
 
     return query
 }
 
 
-var header = "iteration,a,b,c,d,e,f"
+var header = "iteration,chain,parameter,type,token,id,value, score"
 
 
 var output_file = 'output/model_pragBat3-chain' + chain + '.csv'
@@ -516,9 +516,9 @@ var callback = webpplSampleWriter.streamQueryCSV(output_file, header);
 
 var output = Infer({
     model,
-    samples: 10000,
-    burn: 100000,
-    lag: 19,
+    samples: 20000,
+    burn: 150000,
+    lag: 9,
     verbose: true,
     //method: 'incrementalMH',
     method: 'MCMC',
