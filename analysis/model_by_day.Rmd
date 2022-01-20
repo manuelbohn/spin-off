@@ -4,14 +4,14 @@ output: html_document
 ---
 
 ```{r setup, include=FALSE}
-library(tidyverse)
 library(tidyboot)
 library(jsonlite)
-library(rwebppl)
+#library(rwebppl)
 library(coda)
 library(ggthemes)
 library(RColorBrewer)
 library(ggpubr)
+library(tidyverse)
 
 estimate_mode <- function(s) {
   d <- density(s)
@@ -60,7 +60,7 @@ data <- read_csv("../data/data.csv")
 #   mutate(chain = factor(chain),
 #          day = factor(day))%>%saveRDS("../model/output/model_by_day.rds")
 
-model <- readRDS("../model/output/model_by_day.rds")
+model <- readRDS("../model/output/model_by_day_params.rds")
 ```
 
 ## Visualize paramters
@@ -71,7 +71,7 @@ model <- readRDS("../model/output/model_by_day.rds")
 
 ```{r}
 global_sem <- model %>%
-  filter(paramter == "semantic_knowledge",
+  filter(parameter == "semantic_knowledge",
          type == "global_parameter")
 
 ggplot(global_sem, aes(x = value, col = chain, fill=chain))+
@@ -134,7 +134,7 @@ ggplot(data = sem_know_map, aes(x = age+3, y= sem_know, col = id))+
 
 ```{r}
 global_so <- model %>%
-  filter(paramter == "speaker_optimality",
+  filter(parameter == "speaker_optimality",
          type == "global_parameter",
          token != "scale_parameter",
          id != "day" | is.na(id))%>%
