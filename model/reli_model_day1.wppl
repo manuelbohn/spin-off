@@ -529,10 +529,10 @@ var output = Infer({
     burn: 150000,
     lag: 9,
     verbose: true,
-    method: 'incrementalMH',
-    //method: 'MCMC',
-    verboseLag: 1000,
-    onlyMAP: true,
+    // method: 'incrementalMH',
+    method: 'MCMC',
+    //verboseLag: 1000,
+    //onlyMAP: true,
     callbacks: [callback]
 });
 
