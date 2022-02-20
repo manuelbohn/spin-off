@@ -230,7 +230,7 @@ var model = function() {
 
 
     var infScale = logNormal({ mu: 0, sigma: 0.5 })
-    var adhocScale = logNormal({ mu: 0, sigma: 0.5 })
+    var meScale = logNormal({ mu: 0, sigma: 0.5 })
 
     //////////////////////////////////////////////////////////////////
     //////////////// ME Model //////////////////////
@@ -267,6 +267,8 @@ var model = function() {
                 //display(meSubjectDataItem)
             var meSubjectDataItem_correct = _.map(meSubjectDataItem, "correct")
                 //display(meSubjectDataItem_correct)
+
+            var mesubjectSpeakerOptimality = subjectSpeakerOptimality * meScale
 
             var itemLineParameters = all_item_parameters[item]
                 //display(itemLineParameters)
@@ -316,7 +318,7 @@ var model = function() {
                 })
             }
 
-            var meModelPredictions = mePragmaticListener({ label: "novel_word" }, subjectSpeakerOptimality)
+            var meModelPredictions = mePragmaticListener({ label: "novel_word" }, mesubjectSpeakerOptimality)
                 //var meModelPredictions = mePragmaticListener({label: "novel_word"}, so)
 
 
@@ -340,9 +342,9 @@ var model = function() {
             //display(infSubjectData_correct)
         var infSubjectSpeakerOptimality = subjectSpeakerOptimality * infScale
 
-        var infSpeakerOptimality = so * infScale
-            //var infSpeakerOptimality = so
-            //display(infSpeakerOptimality)
+        //var infSpeakerOptimality = so * infScale
+        //var infSpeakerOptimality = so
+        //display(infSpeakerOptimality)
 
         var infLiteralListener = cache(function(utterance) {
             Infer({
@@ -412,9 +414,9 @@ var model = function() {
             // display(adhocSubjectData)
         var adhocSubjectData_correct = _.map(adhocSubjectData, "correct")
             //display(adhocSubjectData_correct)
-        var adhocSubjSpeakerOptimality = subjectSpeakerOptimality * adhocScale
+        var adhocSubjSpeakerOptimality = subjectSpeakerOptimality
             //display(adhocSubjSpeakerOptimality)
-        var adhocSpeakerOptimality = so * adhocScale
+            //var adhocSpeakerOptimality = so * adhocScale
 
 
         // utterance is
@@ -498,7 +500,7 @@ var model = function() {
     query.add([chain, "semantic_knowledge", "global_parameter", "slope", "NA"], globalLineParameters.slope)
 
     query.add([chain, "speaker_optimality", "global_parameter", "scale_parameter", "inf"], [infScale])
-    query.add([chain, "speaker_optimality", "global_parameter", "scale_parameter", "ad_hoc"], [adhocScale])
+    query.add([chain, "speaker_optimality", "global_parameter", "scale_parameter", "me"], [meScale])
     query.add([chain, "speaker_optimality", "global_parameter", "intercept", "NA"], speakerOptimalityParameters.intercept)
     query.add([chain, "speaker_optimality", "global_parameter", "slope", "NA"], speakerOptimalityParameters.slope)
     query.add([chain, "speaker_optimality", "global_parameter", "sigma", "NA"], [subject_sigma])
