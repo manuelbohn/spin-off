@@ -526,8 +526,8 @@ var callback = webpplSampleWriter.streamQueryCSV(output_file, header);
 var output = Infer({
     model,
     samples: 20000,
-    burn: 150000,
-    lag: 9,
+    burn: 50000,
+    lag: 4,
     verbose: true,
     // method: 'incrementalMH',
     method: 'MCMC',
